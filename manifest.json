@@ -1,0 +1,39 @@
+{
+  "domain": "lastmanagement",
+  "name": "Modulares Lastmanagement",
+  "documentation": "https://github.com/cwoerndl/ha-lastmanagement",
+  "dependencies": ["python3"],
+  "arch": ["amd64", "armhf", "armv7", "aarch64"],
+  "machine": ["qemux86-64", "raspberrypi4", "raspberrypi3"],
+  "version": "0.1.0",
+  "slug": "lastmanagement",
+  "description": "Modulares Lastmanagement für PV, Speicher, E-Auto, Warmwasser und Heizungen",
+  "url": "https://github.com/cwoerndl/ha-lastmanagement",
+  "maintainers": ["Christoph Woerndl <deine@email.com>"],
+  "image": "local/lastmanagement-{arch}",
+  "options": {
+    "log_level": "info",
+    "update_interval": 30
+  },
+  "schema": {
+    "log_level": {
+      "type": "select",
+      "default": "info",
+      "options": ["debug", "info", "warning", "error"]
+    },
+    "update_interval": {
+      "type": "integer",
+      "default": 30,
+      "min": 5,
+      "max": 300,
+      "description": "Aktualisierungsintervall in Sekunden"
+    }
+  },
+  "privileged": false,
+  "full_access": false,
+  "homeassistant_api": true,
+  "host_network": false,
+  "host_pid": false,
+  "host_dbus": false,
+  "apparmor": false
+}
