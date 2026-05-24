@@ -1,11 +1,12 @@
-# Basis-Image: Python 3.11 auf Alpine Linux
-FROM homeassistant/amd64-base-python:3.11-alpine
+# Basis-Image: Offizielles HA OS Python-Image
+FROM ghcr.io/hassio-addons/base/python:3.11-alpine
 
-# Installiere Abhängigkeiten
-RUN apk add --no-cache py3-pip py3-yaml
+# Installiere System-Abhängigkeiten (für pip)
+RUN apk add --no-cache py3-pip
 
-# Installiere Python-Pakete (falls benötigt)
-RUN pip install requests pyyaml
+# Kopiere requirements.txt und installiere Python-Pakete
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Kopiere Skripte und Konfiguration
 COPY run.sh /run.sh
