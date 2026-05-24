@@ -2,9 +2,26 @@
 import argparse
 import logging
 import time
-import json
 import os
-from homeassistant_api import Client
+import requests
+import json
+
+def get_ha_state(api_url, token, entity_id):
+    """Holt den Zustand eines Entities über die REST-API von Home Assistant."""
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    url = f"{api_url}/api/states/{entity_id}"
+    try:
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            return response.json()["state"]
+        else:
+            return None
+    except Exception as e:
+        logging.error(f"Fehler beim Abrufen von {entity_id}: {e}")
+        return None
 
 def main():
     # Argument-Parsing
@@ -20,36 +37,42 @@ def main():
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
     logger = logging.getLogger(__name__)
-    logger.info("Starte Lastmanagement-Add-on...")
+    logger.info("Starte Lastmanagement-Add-on (minimale Version)...")
 
-    # Konfiguration laden
-    with open(args.config, "r") as f:
-        config = json.load(f)
-    logger.debug(f"Konfiguration: {config}")
+    # Home Assistant API-URL und Token
+    token = os.getenv("SUPERVISOR_TOKEN")
+    api_url = os.getenv("HASSIO_API")
 
-    # Home Assistant API-Client initialisieren
-    try:
-        client = Client(
-            os.getenv("SUPERVISOR_TOKEN"),
-            os.getenv("HASSIO_API"),
-        )
-        logger.info("Erfolgreich mit Home Assistant verbunden!")
-    except Exception as e:
-        logger.error(f"Fehler beim Verbinden mit Home Assistant: {e}")
+    if not token or not api_url:
+        logger.error("SUPERVISOR_TOKEN oder HASSIO_API nicht gesetzt!")
         return
+
+    logger.info(f"Verbinde mit Home Assistant unter {api_url}...")
 
     # Hauptloop
     while True:
         try:
-            logger.info("Add-on läuft... (Intervall: {} Sekunden)".format(args.interval))
-            # Hier kommt später deine Logik hin!
+            # PV-Leistung und Verbrauch abrufen
+            pv_power = get_ha_state(api_url, token, "sensor.inverter_input_power")
+            current_consumption = get_ha_state(api_url, token, "sensor.current_consumption")
+
+            # Überschuss berechnen
+            if pv_power is not None and current_consumption is not None:
+                pv = float(pv_power)
+                consumption = float(current_consumption)
+                surplus = pv - consumption
+                logger.info(f"PV-Leistung: {pv} W | Verbrauch: {consumption} W | Überschuss: {surplus} W")
+            else:
+                logger.warning("PV-Leistung oder Verbrauch nicht verfügbar")
+
             time.sleep(args.interval)
+
         except KeyboardInterrupt:
             logger.info("Add-on wird beendet...")
             break
         except Exception as e:
             logger.error(f"Fehler im Hauptloop: {e}")
-            time.sleep(10)  # Warte 10 Sekunden bei Fehlern
+            time.sleep(10)
 
 if __name__ == "__main__":
     main()
